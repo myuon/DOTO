@@ -1,6 +1,5 @@
-// substack/minimist
-// MIT License
-function minimist(args, opts) {
+// Github: substack/minimist
+minimist = function (args, opts) {
     if (!opts) opts = {};
 
     var flags = { bools : {}, strings : {}, unknownFn: null };

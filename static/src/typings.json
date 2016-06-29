@@ -1,0 +1,10 @@
+{
+  "dependencies": {},
+  "globalDependencies": {
+    "jquery": "registry:dt/jquery#2.0.0+20160303223636",
+    "lodash": "registry:global/lodash#4.0.0+20160412191414",
+    "minimist": "registry:dt/minimist#1.1.3+20160317120654",
+    "moment": "registry:dt/moment#2.8.0+20160316155526",
+    "moment-node": "registry:dt/moment-node#2.11.1+20160511043338"
+  }
+}
