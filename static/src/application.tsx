@@ -415,7 +415,7 @@ class Item extends React.Component<ItemProps, {}> {
 }
 
 interface ItemListProps {
-  undones: string[];
+  undones: Immutable.List<string>;
   checkDone: (string) => void;
   actvtab: ActivityTab;
   updateItem: (TodoItem) => void;
@@ -443,55 +443,54 @@ interface HomeTabProps {
 };
 
 interface HomeTabState {
-  done: string[];
-  undone: string[];
-  deleted: string[];
+  done: Immutable.List<string>;
+  undone: Immutable.List<string>;
+  deleted: Immutable.List<string>;
 };
+
+function extend<T extends U, U>(itrf: T, part: U): T {
+  return $.extend(itrf, part);
+}
 
 class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   constructor() {
     super();
-    this.state = {done: [], undone: [], deleted: []};
+    this.state = {
+      done: Immutable.List([]),
+      undone: Immutable.List([]),
+      deleted: Immutable.List([])
+    };
   }
 
   addTodo = (itemID: string) => {
-    this.setState((state, _) => {
-      let newState = state;
-      newState.undone.unshift(itemID);
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      undone: state.undone.unshift(itemID)
+    }));
 
     $("#modified").show();
   }
 
   sortBy = (sf: (string) => any) => {
-    this.setState((state, _) => {
-      let newState = state;
-      newState.undone = Immutable.List(newState.undone).sortBy(sf).toJS();
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      undone: state.undone.sortBy(sf)
+    }));
 
     $("#modified").show();
   }
 
   reverse = () => {
-    this.setState((state, _) => {
-      let newState = state;
-      newState.undone = Immutable.List(newState.undone).reverse().toJS();
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      undone: state.undone.reverse()
+    }));
 
     $("#modified").show();
   }
 
   checkDone = (itemID: string) => {
-    this.setState((state, _) => {
-      let newState = state;
-      const n = Immutable.List(newState.undone).keyOf(itemID);
-      newState.undone = Immutable.List(newState.undone).delete(n).toJS();
-      newState.done.unshift(itemID);
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
+      done: state.done.unshift(itemID)
+    }));
 
     $("#modified").show();
   }
@@ -502,13 +501,10 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 
   deleteItem = (itemID: string) => {
-    this.setState((state, _) => {
-      let newState = state;
-      const n = Immutable.List(newState.undone).keyOf(itemID);
-      newState.undone = Immutable.List(newState.undone).delete(n).toJS();
-      newState.deleted.unshift(itemID);
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
+      deleted: state.deleted.unshift(itemID)
+    }));
     $("#modified").show();
   }
 
@@ -540,9 +536,11 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 }
 
+type Action = "add" | "edit" | "done"
+
 interface ActivityItem {
   action_time: string,
-  action: string,
+  action: Action,
   entity: string[]
 };
 
@@ -601,7 +599,7 @@ class Activity extends React.Component<ActivityProps, {}> {
 }
 
 interface ActivityListProps {
-  activities: ActivityItem[];
+  activities: Immutable.List<ActivityItem>;
 };
 
 class ActivityList extends React.Component<ActivityListProps, {}> {
@@ -623,32 +621,36 @@ interface ActivityTabProps {
 };
 
 interface ActivityTabState {
-  activity: ActivityItem[];
+  activities: Immutable.List<ActivityItem>;
 };
 
 class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
   constructor() {
     super();
-    this.state = {activity: []};
+    this.state = {
+      activities: Immutable.List([])
+    };
   }
 
-  newActivity = (kind: string, itemIDs: string[]) => {
+  newActivity = (act: Action, itemIDs: string[]) => {
     let item: ActivityItem = {
-      action: kind,
-      action_time: _.now().toString(),
+      action: act,
+      action_time: strtime(_.now()),
       entity: itemIDs
     };
 
     this.setState((state, _) => {
       let newState = state;
-      newState.activity.unshift(item);
+      newState.activities = newState.activities.unshift(item);
       return newState;
     });
   }
 
   componentDidMount() {
     $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
-      this.setState({activity: j.activity});
+      this.setState({
+        activities: Immutable.List(j.activities as ActivityItem[])
+      });
     });
   }
 
@@ -659,7 +661,7 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
           Activity
         </h4>
 
-        <ActivityList activities={this.state.activity} />
+        <ActivityList activities={this.state.activities} />
       </div>
     );
   }

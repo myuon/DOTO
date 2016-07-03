@@ -412,41 +412,35 @@
 	}
 	;
 	;
+	function extend(itrf, part) {
+	    return $.extend(itrf, part);
+	}
 	class HomeTab extends React.Component {
 	    constructor() {
 	        super();
 	        this.addTodo = (itemID) => {
-	            this.setState((state, _) => {
-	                let newState = state;
-	                newState.undone.unshift(itemID);
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                undone: state.undone.unshift(itemID)
+	            }));
 	            $("#modified").show();
 	        };
 	        this.sortBy = (sf) => {
-	            this.setState((state, _) => {
-	                let newState = state;
-	                newState.undone = Immutable.List(newState.undone).sortBy(sf).toJS();
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                undone: state.undone.sortBy(sf)
+	            }));
 	            $("#modified").show();
 	        };
 	        this.reverse = () => {
-	            this.setState((state, _) => {
-	                let newState = state;
-	                newState.undone = Immutable.List(newState.undone).reverse().toJS();
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                undone: state.undone.reverse()
+	            }));
 	            $("#modified").show();
 	        };
 	        this.checkDone = (itemID) => {
-	            this.setState((state, _) => {
-	                let newState = state;
-	                const n = Immutable.List(newState.undone).keyOf(itemID);
-	                newState.undone = Immutable.List(newState.undone).delete(n).toJS();
-	                newState.done.unshift(itemID);
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
+	                done: state.done.unshift(itemID)
+	            }));
 	            $("#modified").show();
 	        };
 	        this.updateItem = (item) => {
@@ -454,16 +448,17 @@
 	            $("#modified").show();
 	        };
 	        this.deleteItem = (itemID) => {
-	            this.setState((state, _) => {
-	                let newState = state;
-	                const n = Immutable.List(newState.undone).keyOf(itemID);
-	                newState.undone = Immutable.List(newState.undone).delete(n).toJS();
-	                newState.deleted.unshift(itemID);
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
+	                deleted: state.deleted.unshift(itemID)
+	            }));
 	            $("#modified").show();
 	        };
-	        this.state = { done: [], undone: [], deleted: [] };
+	        this.state = {
+	            done: Immutable.List([]),
+	            undone: Immutable.List([]),
+	            deleted: Immutable.List([])
+	        };
 	    }
 	    componentDidMount() {
 	        $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
@@ -536,29 +531,33 @@
 	class ActivityTab extends React.Component {
 	    constructor() {
 	        super();
-	        this.newActivity = (kind, itemIDs) => {
+	        this.newActivity = (act, itemIDs) => {
 	            let item = {
-	                action: kind,
-	                action_time: _.now().toString(),
+	                action: act,
+	                action_time: strtime(_.now()),
 	                entity: itemIDs
 	            };
 	            this.setState((state, _) => {
 	                let newState = state;
-	                newState.activity.unshift(item);
+	                newState.activities = newState.activities.unshift(item);
 	                return newState;
 	            });
 	        };
-	        this.state = { activity: [] };
+	        this.state = {
+	            activities: Immutable.List([])
+	        };
 	    }
 	    componentDidMount() {
 	        $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
-	            this.setState({ activity: j.activity });
+	            this.setState({
+	                activities: Immutable.List(j.activities)
+	            });
 	        });
 	    }
 	    render() {
 	        return (React.createElement("div", null, 
 	            React.createElement("h4", {className: "ui horizontal divider header"}, "Activity"), 
-	            React.createElement(ActivityList, {activities: this.state.activity})));
+	            React.createElement(ActivityList, {activities: this.state.activities})));
 	    }
 	}
 	(function () {
