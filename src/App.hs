@@ -20,8 +20,8 @@ import Servant.Docs (markdown, docs, ToSample(..), singleSample)
 type API =
   "static" :> Raw
   :<|> Get '[HTML "index.html"] Object
-  :<|> "update" :> ReqBody '[JSON] (Object, Object) :> Post '[JSON] ()
-  :<|> "todo" :> Capture "todo_file" String :> Get '[JSON] (Value, Value)
+  :<|> "save" :> Capture "todo_id" String :> Capture "filename" String :> ReqBody '[JSON] Value :> Post '[JSON] ()
+  :<|> "todo" :> Capture "todo_id" String :> Capture "filename" String :> Get '[JSON] Value
 
 app :: Application
 app = serve api server
@@ -33,25 +33,18 @@ server :: Server API
 server =
   serveDirectory "static"
   :<|> return mempty
-  :<|> update
+  :<|> save
   :<|> todo
 
   where
-    update (j,hj) = do
+    save tid fn json = do
       liftIO
-        $ writeFile "todo/20160628192500.json" $ T.unpack $ T.toLazyText
-        $ encodePrettyToTextBuilder' (Config 2 mempty) $ toJSON j
+        $ writeFile ("todo/" ++ tid ++ "/" ++ fn) $ T.unpack $ T.toLazyText
+        $ encodePrettyToTextBuilder' (Config 2 mempty) $ toJSON json
 
-      liftIO
-        $ writeFile "todo/20160628192500_history.json" $ T.unpack $ T.toLazyText
-        $ encodePrettyToTextBuilder' (Config 2 mempty) $ toJSON hj
-      return ()
-
-    todo fn = do
-      let (bn,_) = break (== '.') fn
-      Just j <- decode <$> liftIO (BS.readFile $ "todo/" ++ fn)
-      Just hj <- decode <$> liftIO (BS.readFile $ "todo/" ++ bn ++ "_history.json")
-      return (j, hj)
+    todo tid fn = do
+      Just j <- decode <$> liftIO (BS.readFile $ "todo/" ++ tid ++ "/" ++ fn)
+      return j
 
 startApp :: IO ()
 startApp = do
