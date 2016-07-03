@@ -60,6 +60,9 @@
 	const React = __webpack_require__(105);
 	const ReactDOM = __webpack_require__(142);
 	const Immutable = __webpack_require__(272);
+	function extend(itrf, part) {
+	    return $.extend(itrf, part);
+	}
 	;
 	var items = {};
 	;
@@ -89,13 +92,15 @@
 	                        .fail((d) => reject());
 	                });
 	            };
+	            let todolist = this.props.hometab.state;
+	            let activity = this.props.actvtab.state;
+	            let itemmp = Immutable.Map(items);
 	            return new Promise((resolve, reject) => {
-	                promise_save('todolist.json', this.props.hometab.state)
+	                promise_save('todolist.json', todolist)
 	                    .then(() => {
-	                    promise_save('activity.json', this.props.actvtab.state)
+	                    promise_save('activity.json', activity)
 	                        .then(() => {
-	                        let mp = Immutable.Map(items);
-	                        promise_save('items.json', { items: mp.toArray() })
+	                        promise_save('items.json', { items: itemmp.toArray() })
 	                            .then((_) => resolve())
 	                            .catch((_) => reject());
 	                    })
@@ -412,35 +417,35 @@
 	}
 	;
 	;
-	function extend(itrf, part) {
-	    return $.extend(itrf, part);
-	}
 	class HomeTab extends React.Component {
 	    constructor() {
 	        super();
 	        this.addTodo = (itemID) => {
 	            this.setState((state, _) => extend(state, {
-	                undone: state.undone.unshift(itemID)
+	                undone: Immutable.List(state.undone).unshift(itemID).toArray()
 	            }));
 	            $("#modified").show();
 	        };
 	        this.sortBy = (sf) => {
 	            this.setState((state, _) => extend(state, {
-	                undone: state.undone.sortBy(sf)
+	                undone: Immutable.List(state.undone).sortBy(sf).toArray()
 	            }));
 	            $("#modified").show();
 	        };
 	        this.reverse = () => {
 	            this.setState((state, _) => extend(state, {
-	                undone: state.undone.reverse()
+	                undone: Immutable.List(state.undone).reverse().toArray()
 	            }));
 	            $("#modified").show();
 	        };
 	        this.checkDone = (itemID) => {
-	            this.setState((state, _) => extend(state, {
-	                undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
-	                done: state.done.unshift(itemID)
-	            }));
+	            this.setState((state, _) => {
+	                const n = Immutable.List(state.undone).keyOf(itemID);
+	                return extend(state, {
+	                    undone: Immutable.List(state.undone).delete(n).toArray(),
+	                    done: Immutable.List(state.done).unshift(itemID).toArray()
+	                });
+	            });
 	            $("#modified").show();
 	        };
 	        this.updateItem = (item) => {
@@ -448,16 +453,19 @@
 	            $("#modified").show();
 	        };
 	        this.deleteItem = (itemID) => {
-	            this.setState((state, _) => extend(state, {
-	                undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
-	                deleted: state.deleted.unshift(itemID)
-	            }));
+	            this.setState((state, _) => {
+	                const n = Immutable.List(state.undone).keyOf(itemID);
+	                return extend(state, {
+	                    undone: Immutable.List(state.undone).delete(n).toArray(),
+	                    deleted: Immutable.List(state.deleted).unshift(itemID).toArray()
+	                });
+	            });
 	            $("#modified").show();
 	        };
 	        this.state = {
-	            done: Immutable.List([]),
-	            undone: Immutable.List([]),
-	            deleted: Immutable.List([])
+	            done: [],
+	            undone: [],
+	            deleted: []
 	        };
 	    }
 	    componentDidMount() {
@@ -537,20 +545,18 @@
 	                action_time: strtime(_.now()),
 	                entity: itemIDs
 	            };
-	            this.setState((state, _) => {
-	                let newState = state;
-	                newState.activities = newState.activities.unshift(item);
-	                return newState;
-	            });
+	            this.setState((state, _) => extend(state, {
+	                activities: Immutable.List(state.activities).unshift(item).toArray()
+	            }));
 	        };
 	        this.state = {
-	            activities: Immutable.List([])
+	            activities: []
 	        };
 	    }
 	    componentDidMount() {
 	        $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
 	            this.setState({
-	                activities: Immutable.List(j.activities)
+	                activities: j.activities
 	            });
 	        });
 	    }

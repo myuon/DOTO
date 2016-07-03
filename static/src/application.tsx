@@ -8,6 +8,10 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import Immutable = require('immutable');
 
+function extend<T extends U, U>(itrf: T, part: U): T {
+  return $.extend(itrf, part);
+}
+
 interface KeyId<a> {
   [id: string]: a;
 };
@@ -84,13 +88,16 @@ class Terminal extends React.Component<TerminalProps, {}> {
       });
     };
 
+    let todolist: HomeTabState = this.props.hometab.state;
+    let activity: ActivityTabState = this.props.actvtab.state;
+    let itemmp: Immutable.Map<string, TodoItem> = Immutable.Map(items);
+
     return new Promise((resolve, reject) => {
-      promise_save('todolist.json', this.props.hometab.state)
+      promise_save('todolist.json', todolist)
         .then(() => {
-          promise_save('activity.json', this.props.actvtab.state)
+          promise_save('activity.json', activity)
             .then(() => {
-              let mp: Immutable.Map<string, TodoItem> = Immutable.Map(items);
-              promise_save('items.json', {items: mp.toArray()})
+              promise_save('items.json', {items: itemmp.toArray()})
               .then((_) => resolve())
               .catch((_) => reject());
             })
@@ -415,7 +422,7 @@ class Item extends React.Component<ItemProps, {}> {
 }
 
 interface ItemListProps {
-  undones: Immutable.List<string>;
+  undones: string[];
   checkDone: (string) => void;
   actvtab: ActivityTab;
   updateItem: (TodoItem) => void;
@@ -443,28 +450,24 @@ interface HomeTabProps {
 };
 
 interface HomeTabState {
-  done: Immutable.List<string>;
-  undone: Immutable.List<string>;
-  deleted: Immutable.List<string>;
+  done: string[];
+  undone: string[];
+  deleted: string[];
 };
-
-function extend<T extends U, U>(itrf: T, part: U): T {
-  return $.extend(itrf, part);
-}
 
 class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   constructor() {
     super();
     this.state = {
-      done: Immutable.List([]),
-      undone: Immutable.List([]),
-      deleted: Immutable.List([])
+      done: [],
+      undone: [],
+      deleted: []
     };
   }
 
   addTodo = (itemID: string) => {
     this.setState((state, _) => extend(state, {
-      undone: state.undone.unshift(itemID)
+      undone: Immutable.List(state.undone).unshift(itemID).toArray()
     }));
 
     $("#modified").show();
@@ -472,7 +475,7 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
 
   sortBy = (sf: (string) => any) => {
     this.setState((state, _) => extend(state, {
-      undone: state.undone.sortBy(sf)
+      undone: Immutable.List(state.undone).sortBy(sf).toArray()
     }));
 
     $("#modified").show();
@@ -480,17 +483,20 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
 
   reverse = () => {
     this.setState((state, _) => extend(state, {
-      undone: state.undone.reverse()
+      undone: Immutable.List(state.undone).reverse().toArray()
     }));
 
     $("#modified").show();
   }
 
   checkDone = (itemID: string) => {
-    this.setState((state, _) => extend(state, {
-      undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
-      done: state.done.unshift(itemID)
-    }));
+    this.setState((state, _) => {
+      const n = Immutable.List(state.undone).keyOf(itemID);
+      return extend(state, {
+        undone: Immutable.List(state.undone).delete(n).toArray(),
+        done: Immutable.List(state.done).unshift(itemID).toArray()
+      });
+    });
 
     $("#modified").show();
   }
@@ -501,10 +507,13 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 
   deleteItem = (itemID: string) => {
-    this.setState((state, _) => extend(state, {
-      undone: Immutable.List(state.undone).delete(Immutable.List(state.undone).keyOf(itemID)),
-      deleted: state.deleted.unshift(itemID)
-    }));
+    this.setState((state, _) => {
+      const n = Immutable.List(state.undone).keyOf(itemID);
+      return extend(state, {
+        undone: Immutable.List(state.undone).delete(n).toArray(),
+        deleted: Immutable.List(state.deleted).unshift(itemID).toArray()
+      });
+    });
     $("#modified").show();
   }
 
@@ -599,7 +608,7 @@ class Activity extends React.Component<ActivityProps, {}> {
 }
 
 interface ActivityListProps {
-  activities: Immutable.List<ActivityItem>;
+  activities: ActivityItem[];
 };
 
 class ActivityList extends React.Component<ActivityListProps, {}> {
@@ -621,14 +630,14 @@ interface ActivityTabProps {
 };
 
 interface ActivityTabState {
-  activities: Immutable.List<ActivityItem>;
+  activities: ActivityItem[];
 };
 
 class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
   constructor() {
     super();
     this.state = {
-      activities: Immutable.List([])
+      activities: []
     };
   }
 
@@ -639,17 +648,15 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
       entity: itemIDs
     };
 
-    this.setState((state, _) => {
-      let newState = state;
-      newState.activities = newState.activities.unshift(item);
-      return newState;
-    });
+    this.setState((state, _) => extend(state, {
+      activities: Immutable.List(state.activities).unshift(item).toArray()
+    }));
   }
 
   componentDidMount() {
     $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
       this.setState({
-        activities: Immutable.List(j.activities as ActivityItem[])
+        activities: j.activities
       });
     });
   }
