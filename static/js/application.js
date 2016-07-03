@@ -75,6 +75,7 @@
 	    }
 	}
 	;
+	;
 	class Terminal extends React.Component {
 	    constructor() {
 	        super();
@@ -173,13 +174,45 @@
 	                $("#modified").show();
 	            }
 	        };
-	        this.onKeyPress = (event) => {
+	        this.onKeyUp = (event) => {
 	            if (event.key == 'Enter') {
-	                const com = event.target.value;
-	                const mobj = this.terminalParser(com);
+	                const text = event.target.value;
+	                const mobj = this.terminalParser(text);
+	                if (text != "") {
+	                    this.setState((state, _) => extend(state, {
+	                        history: Immutable.List(state.history).unshift(text).toArray()
+	                    }));
+	                }
 	                this.terminalEvent(mobj);
 	            }
+	            // arrowkey up
+	            if (event.keyCode == 38) {
+	                if (this.state.historyIndex != this.state.history.length - 1) {
+	                    this.setState((state, _) => extend(state, {
+	                        historyIndex: state.historyIndex + 1
+	                    }));
+	                }
+	                if (this.state.historyIndex != -1) {
+	                    $(this.ref).val(this.state.history[this.state.historyIndex]);
+	                }
+	                else {
+	                    $(this.ref).val("");
+	                }
+	            }
+	            // arrowkey down
+	            if (event.keyCode == 40) {
+	                if (this.state.historyIndex != -1) {
+	                    this.setState((state, _) => extend(state, {
+	                        historyIndex: state.historyIndex - 1
+	                    }));
+	                    $(this.ref).val(this.state.history[this.state.historyIndex]);
+	                }
+	                else {
+	                    $(this.ref).val("");
+	                }
+	            }
 	        };
+	        this.state = { history: [], historyIndex: -1 };
 	    }
 	    componentDidMount() {
 	        let saving_start = () => {
@@ -203,7 +236,7 @@
 	    render() {
 	        return (React.createElement("div", {className: "ui inverted transparent fluid left icon input"}, 
 	            React.createElement("i", {className: "terminal icon"}), 
-	            React.createElement("input", {type: "text", placeholder: "What to do next?", onKeyPress: this.onKeyPress, ref: (ref) => this.ref = ref})));
+	            React.createElement("input", {type: "text", placeholder: "What to do next?", onKeyUp: this.onKeyUp, ref: (ref) => this.ref = ref})));
 	    }
 	}
 	;
@@ -219,8 +252,8 @@
 	            let v = $("#edit-form-" + item.id);
 	            let name = $(v).find('[name=todo-name]').val();
 	            let due = $(v).find('[name=due-date]').val();
-	            let icon = $(v).find('.icon-select').find('.icon-name').text();
-	            let color = $(v).find('.color-select').find('.color-name').text();
+	            let icon = $(this.dropdown_icon).dropdown('get value');
+	            let color = $(this.dropdown_color).dropdown('get value');
 	            let message = $(v).find('[name=item-message]').val();
 	            let tags = $(v).find('[name=item-tags]').val();
 	            this.props.updateItem($.extend(item, {
@@ -241,8 +274,8 @@
 	    }
 	    componentDidMount() {
 	        $(this.accordion).accordion();
-	        $(this.dropdown_icon).dropdown();
-	        $(this.dropdown_color).dropdown();
+	        $(this.dropdown_icon).dropdown('set selected', this.props.item.icon);
+	        $(this.dropdown_color).dropdown('set selected', this.props.item.color);
 	        $(this.datetime).datetimepicker({
 	            format: 'Y-m-d H:i:s',
 	            step: 30
@@ -279,103 +312,77 @@
 	                                React.createElement("div", {className: "field"}, 
 	                                    React.createElement("label", null, "Icon:"), 
 	                                    React.createElement("div", {className: "ui top left pointing dropdown basic tiny fluid button", ref: (ref) => this.dropdown_icon = ref}, 
-	                                        React.createElement("span", {className: "text icon-select"}, 
-	                                            React.createElement("div", {className: "item"}, 
-	                                                React.createElement("i", {className: "pencil icon"}), 
-	                                                " ", 
-	                                                React.createElement("span", {className: "icon-name"}, "pencil"))
-	                                        ), 
+	                                        React.createElement("span", {className: "text icon-select"}), 
 	                                        React.createElement("div", {className: "menu"}, 
 	                                            React.createElement("div", {className: "ui icon search input", style: { width: "auto" }}, 
 	                                                React.createElement("i", {className: "search icon"}), 
 	                                                React.createElement("input", {type: "text", placeholder: "Search tags..."})), 
 	                                            React.createElement("div", {className: "scrolling menu"}, 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                React.createElement("div", {className: "item", "data-value": "pencil"}, 
 	                                                    React.createElement("i", {className: "pencil icon"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "icon-name"}, "pencil")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " pencil"), 
+	                                                React.createElement("div", {className: "item", "data-value": "calendar"}, 
 	                                                    React.createElement("i", {className: "calendar icon"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "icon-name"}, "calendar")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " calendar"), 
+	                                                React.createElement("div", {className: "item", "data-value": "checkmark"}, 
 	                                                    React.createElement("i", {className: "checkmark icon"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "icon-name"}, "checkmark")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " checkmark"), 
+	                                                React.createElement("div", {className: "item", "data-value": "tasks"}, 
 	                                                    React.createElement("i", {className: "tasks icon"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "icon-name"}, "tasks")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " tasks"), 
+	                                                React.createElement("div", {className: "item", "data-value": "alarm"}, 
 	                                                    React.createElement("i", {className: "alarm icon"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "icon-name"}, "alarm")))))), 
+	                                                    " alarm"))))), 
 	                                React.createElement("div", {className: "field"}, 
 	                                    React.createElement("label", null, "Color:"), 
 	                                    React.createElement("div", {className: "ui top left pointing dropdown basic tiny fluid button", ref: (ref) => this.dropdown_color = ref}, 
 	                                        React.createElement("span", {className: "text color-select"}, 
-	                                            React.createElement("div", {className: "item"}, 
-	                                                React.createElement("div", {className: "ui red empty circular label"}), 
-	                                                " ", 
-	                                                React.createElement("span", {className: "color-name"}, "red"))
+	                                            React.createElement("div", {className: "item"})
 	                                        ), 
 	                                        React.createElement("div", {className: "menu"}, 
 	                                            React.createElement("div", {className: "ui icon search input", style: { width: "auto" }}, 
 	                                                React.createElement("i", {className: "search icon"}), 
 	                                                React.createElement("input", {type: "text", placeholder: "Search tags..."})), 
 	                                            React.createElement("div", {className: "scrolling menu"}, 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                React.createElement("div", {className: "item", "data-value": "red"}, 
 	                                                    React.createElement("div", {className: "ui red empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "red")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " red"), 
+	                                                React.createElement("div", {className: "item", "data-value": "orange"}, 
 	                                                    React.createElement("div", {className: "ui orange empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "orange")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " orange"), 
+	                                                React.createElement("div", {className: "item", "data-value": "yellow"}, 
 	                                                    React.createElement("div", {className: "ui yellow empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "yellow")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " yellow"), 
+	                                                React.createElement("div", {className: "item", "data-value": "olive"}, 
 	                                                    React.createElement("div", {className: "ui olive empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "olive")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " olive"), 
+	                                                React.createElement("div", {className: "item", "data-value": "green"}, 
 	                                                    React.createElement("div", {className: "ui green empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "green")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " green"), 
+	                                                React.createElement("div", {className: "item", "data-value": "teal"}, 
 	                                                    React.createElement("div", {className: "ui teal empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "teal")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " teal"), 
+	                                                React.createElement("div", {className: "item", "data-value": "blue"}, 
 	                                                    React.createElement("div", {className: "ui blue empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "blue")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " blue"), 
+	                                                React.createElement("div", {className: "item", "data-value": "violet"}, 
 	                                                    React.createElement("div", {className: "ui violet empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "violet")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " violet"), 
+	                                                React.createElement("div", {className: "item", "data-value": "purple"}, 
 	                                                    React.createElement("div", {className: "ui purple empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "purple")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " purple"), 
+	                                                React.createElement("div", {className: "item", "data-value": "pink"}, 
 	                                                    React.createElement("div", {className: "ui pink empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "pink")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " pink"), 
+	                                                React.createElement("div", {className: "item", "data-value": "brown"}, 
 	                                                    React.createElement("div", {className: "ui brown empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "brown")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " brown"), 
+	                                                React.createElement("div", {className: "item", "data-value": "grey"}, 
 	                                                    React.createElement("div", {className: "ui grey empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "grey")), 
-	                                                React.createElement("div", {className: "item"}, 
+	                                                    " grey"), 
+	                                                React.createElement("div", {className: "item", "data-value": "black"}, 
 	                                                    React.createElement("div", {className: "ui black empty circular label"}), 
-	                                                    " ", 
-	                                                    React.createElement("span", {className: "color-name"}, "black")))))), 
+	                                                    " black"))))), 
 	                                React.createElement("div", {className: "field"}, 
 	                                    React.createElement("label", null, "Tags:"), 
 	                                    React.createElement("input", {type: "text", name: "item-tags", defaultValue: this.props.item.tags}))), 
@@ -386,8 +393,8 @@
 	                            }}, "Delete"))
 	                    ), 
 	                    (() => {
-	                        if ("message" in this.props.item && this.props.item.message.length != 0) {
-	                            React.createElement("div", {className: "extra text"}, this.props.item.message);
+	                        if (this.props.item.message !== undefined && this.props.item.message.length != 0) {
+	                            return (React.createElement("div", {className: "extra text"}, this.props.item.message));
 	                        }
 	                    })()), 
 	                React.createElement("div", {className: "meta"}, 

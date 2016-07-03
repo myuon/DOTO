@@ -43,11 +43,17 @@ interface TerminalProps {
   url: string
 };
 
-class Terminal extends React.Component<TerminalProps, {}> {
+interface TerminalState {
+  history: string[],
+  historyIndex: number
+};
+
+class Terminal extends React.Component<TerminalProps, TerminalState> {
   ref: any
 
   constructor() {
     super();
+    this.state = {history: [], historyIndex: -1}
   }
 
   componentDidMount() {
@@ -167,11 +173,41 @@ class Terminal extends React.Component<TerminalProps, {}> {
     }
   }
 
-  onKeyPress = (event: React.KeyboardEvent) => {
+  onKeyUp = (event: React.KeyboardEvent) => {
     if (event.key == 'Enter') {
-      const com: string = (event.target as HTMLInputElement).value;
-      const mobj = this.terminalParser(com);
+      const text: string = (event.target as HTMLInputElement).value;
+      const mobj = this.terminalParser(text);
+      if (text != "") {
+        this.setState((state, _) => extend(state, {
+          history: Immutable.List(state.history).unshift(text).toArray()
+        }));
+      }
+
       this.terminalEvent(mobj);
+    }
+
+    // arrowkey up
+    if (event.keyCode == 38) {
+      if (this.state.historyIndex != this.state.history.length - 1) {
+        this.setState((state, _) => extend(state, {
+          historyIndex: state.historyIndex + 1
+        }));
+      }
+      if (this.state.historyIndex != -1) {
+        $(this.ref).val(this.state.history[this.state.historyIndex]);
+      } else {
+        $(this.ref).val("");
+      }
+    }
+    // arrowkey down
+    if (event.keyCode == 40) {
+      if (this.state.historyIndex != -1) {
+        this.setState((state, _) => extend(state, {
+          historyIndex: state.historyIndex - 1
+        }));
+        $(this.ref).val(this.state.history[this.state.historyIndex]);
+      }
+      else { $(this.ref).val(""); }
     }
   }
 
@@ -182,7 +218,7 @@ class Terminal extends React.Component<TerminalProps, {}> {
         <input
           type="text"
           placeholder="What to do next?"
-          onKeyPress={this.onKeyPress}
+          onKeyUp={this.onKeyUp}
           ref={(ref) => this.ref = ref}
           />
       </div>
@@ -206,8 +242,8 @@ class Item extends React.Component<ItemProps, {}> {
 
   componentDidMount() {
     ($(this.accordion) as any).accordion();
-    ($(this.dropdown_icon) as any).dropdown();
-    ($(this.dropdown_color) as any).dropdown();
+    ($(this.dropdown_icon) as any).dropdown('set selected', this.props.item.icon);
+    ($(this.dropdown_color) as any).dropdown('set selected', this.props.item.color);
     ($(this.datetime) as any).datetimepicker({
       format: 'Y-m-d H:i:s',
       step: 30
@@ -224,8 +260,8 @@ class Item extends React.Component<ItemProps, {}> {
     let v = $("#edit-form-" + item.id);
     let name = $(v).find('[name=todo-name]').val();
     let due = $(v).find('[name=due-date]').val();
-    let icon = $(v).find('.icon-select').find('.icon-name').text();
-    let color = $(v).find('.color-select').find('.color-name').text();
+    let icon = ($(this.dropdown_icon) as any).dropdown('get value');
+    let color = ($(this.dropdown_color) as any).dropdown('get value');
     let message = $(v).find('[name=item-message]').val();
     let tags = $(v).find('[name=item-tags]').val();
 
@@ -288,9 +324,6 @@ class Item extends React.Component<ItemProps, {}> {
                     <label>Icon:</label>
                     <div className="ui top left pointing dropdown basic tiny fluid button" ref={(ref) => this.dropdown_icon = ref}>
                       <span className="text icon-select">
-                        <div className="item">
-                          <i className="pencil icon"></i> <span className="icon-name">pencil</span>
-                        </div>
                       </span>
                       <div className="menu">
                         <div className="ui icon search input" style={{width: "auto"}}>
@@ -298,20 +331,20 @@ class Item extends React.Component<ItemProps, {}> {
                           <input type="text" placeholder="Search tags..." />
                         </div>
                         <div className="scrolling menu">
-                          <div className="item">
-                            <i className="pencil icon"></i> <span className="icon-name">pencil</span>
+                          <div className="item" data-value="pencil">
+                            <i className="pencil icon"></i> pencil
                           </div>
-                          <div className="item">
-                            <i className="calendar icon"></i> <span className="icon-name">calendar</span>
+                          <div className="item" data-value="calendar">
+                            <i className="calendar icon"></i> calendar
                           </div>
-                          <div className="item">
-                            <i className="checkmark icon"></i> <span className="icon-name">checkmark</span>
+                          <div className="item" data-value="checkmark">
+                            <i className="checkmark icon"></i> checkmark
                           </div>
-                          <div className="item">
-                            <i className="tasks icon"></i> <span className="icon-name">tasks</span>
+                          <div className="item" data-value="tasks">
+                            <i className="tasks icon"></i> tasks
                           </div>
-                          <div className="item">
-                            <i className="alarm icon"></i> <span className="icon-name">alarm</span>
+                          <div className="item" data-value="alarm">
+                            <i className="alarm icon"></i> alarm
                           </div>
                         </div>
                       </div>
@@ -322,7 +355,6 @@ class Item extends React.Component<ItemProps, {}> {
                     <div className="ui top left pointing dropdown basic tiny fluid button" ref={(ref) => this.dropdown_color = ref}>
                       <span className="text color-select">
                         <div className="item">
-                          <div className="ui red empty circular label"></div> <span className="color-name">red</span>
                         </div>
                       </span>
                       <div className="menu">
@@ -331,44 +363,44 @@ class Item extends React.Component<ItemProps, {}> {
                           <input type="text" placeholder="Search tags..." />
                         </div>
                         <div className="scrolling menu">
-                          <div className="item">
-                            <div className="ui red empty circular label"></div> <span className="color-name">red</span>
+                          <div className="item" data-value="red">
+                            <div className="ui red empty circular label"></div> red
                           </div>
-                          <div className="item">
-                            <div className="ui orange empty circular label"></div> <span className="color-name">orange</span>
+                          <div className="item" data-value="orange">
+                            <div className="ui orange empty circular label"></div> orange
                           </div>
-                          <div className="item">
-                            <div className="ui yellow empty circular label"></div> <span className="color-name">yellow</span>
+                          <div className="item" data-value="yellow">
+                            <div className="ui yellow empty circular label"></div> yellow
                           </div>
-                          <div className="item">
-                            <div className="ui olive empty circular label"></div> <span className="color-name">olive</span>
+                          <div className="item" data-value="olive">
+                            <div className="ui olive empty circular label"></div> olive
                           </div>
-                          <div className="item">
-                            <div className="ui green empty circular label"></div> <span className="color-name">green</span>
+                          <div className="item" data-value="green">
+                            <div className="ui green empty circular label"></div> green
                           </div>
-                          <div className="item">
-                            <div className="ui teal empty circular label"></div> <span className="color-name">teal</span>
+                          <div className="item" data-value="teal">
+                            <div className="ui teal empty circular label"></div> teal
                           </div>
-                          <div className="item">
-                            <div className="ui blue empty circular label"></div> <span className="color-name">blue</span>
+                          <div className="item" data-value="blue">
+                            <div className="ui blue empty circular label"></div> blue
                           </div>
-                          <div className="item">
-                            <div className="ui violet empty circular label"></div> <span className="color-name">violet</span>
+                          <div className="item" data-value="violet">
+                            <div className="ui violet empty circular label"></div> violet
                           </div>
-                          <div className="item">
-                            <div className="ui purple empty circular label"></div> <span className="color-name">purple</span>
+                          <div className="item" data-value="purple">
+                            <div className="ui purple empty circular label"></div> purple
                           </div>
-                          <div className="item">
-                            <div className="ui pink empty circular label"></div> <span className="color-name">pink</span>
+                          <div className="item" data-value="pink">
+                            <div className="ui pink empty circular label"></div> pink
                           </div>
-                          <div className="item">
-                            <div className="ui brown empty circular label"></div> <span className="color-name">brown</span>
+                          <div className="item" data-value="brown">
+                            <div className="ui brown empty circular label"></div> brown
                           </div>
-                          <div className="item">
-                            <div className="ui grey empty circular label"></div> <span className="color-name">grey</span>
+                          <div className="item" data-value="grey">
+                            <div className="ui grey empty circular label"></div> grey
                           </div>
-                          <div className="item">
-                            <div className="ui black empty circular label"></div> <span className="color-name">black</span>
+                          <div className="item" data-value="black">
+                            <div className="ui black empty circular label"></div> black
                           </div>
                         </div>
                       </div>
@@ -393,10 +425,12 @@ class Item extends React.Component<ItemProps, {}> {
               </form>
             </div>
             {(() => {
-              if ("message" in this.props.item && this.props.item.message.length != 0) {
-                <div className="extra text">
-                  {this.props.item.message}
-                </div>
+              if (this.props.item.message !== undefined && this.props.item.message.length != 0) {
+                return (
+                  <div className="extra text">
+                    {this.props.item.message}
+                  </div>
+                );
               }
             })()}
           </div>
