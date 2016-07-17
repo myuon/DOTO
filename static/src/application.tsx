@@ -7,6 +7,7 @@ import * as moment from "moment";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import Immutable = require('immutable');
+import Router = require('react-router');
 
 function extend<T extends U, U>(itrf: T, part: U): T {
   return $.extend(itrf, part);
@@ -503,7 +504,6 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
     this.setState((state, _) => extend(state, {
       undone: Immutable.List(state.undone).unshift(itemID).toArray()
     }));
-
     $("#modified").show();
   }
 
@@ -511,7 +511,6 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
     this.setState((state, _) => extend(state, {
       undone: Immutable.List(state.undone).sortBy(sf).toArray()
     }));
-
     $("#modified").show();
   }
 
@@ -519,7 +518,6 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
     this.setState((state, _) => extend(state, {
       undone: Immutable.List(state.undone).reverse().toArray()
     }));
-
     $("#modified").show();
   }
 
@@ -531,7 +529,6 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
         done: Immutable.List(state.done).unshift(itemID).toArray()
       });
     });
-
     $("#modified").show();
   }
 
@@ -561,15 +558,57 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
     });
   }
 
+  static contextTypes = {
+    router: React.PropTypes.func.isRequired
+  }
+
   render() {
+    let hasdue = (v) => "due" in items[v] && items[v].due != ""
+    let inaday = (v) => moment(items[v].due) < moment().endOf('day');
+    let inaweek = (v) => moment(items[v].due) < moment().add(1, 'week');
     return (
       <div>
+        {status}
+
+        <h4 className="ui horizontal divider header">
+          Today
+        </h4>
+
+        <ItemList
+          undones={this.state.undone.filter((v) => hasdue(v) && inaday(v))}
+          checkDone={this.checkDone}
+          updateItem={this.updateItem}
+          deleteItem={this.deleteItem}
+          actvtab={this.props.actvtab} />
+
+        <h4 className="ui horizontal divider header">
+          This Week
+        </h4>
+
+        <ItemList
+          undones={this.state.undone.filter((v) => hasdue(v) && !inaday(v) && inaweek(v))}
+          checkDone={this.checkDone}
+          updateItem={this.updateItem}
+          deleteItem={this.deleteItem}
+          actvtab={this.props.actvtab} />
+
+        <h4 className="ui horizontal divider header">
+          Others
+        </h4>
+
+        <ItemList
+          undones={this.state.undone.filter((v) => hasdue(v) && !inaday(v) && !inaweek(v))}
+          checkDone={this.checkDone}
+          updateItem={this.updateItem}
+          deleteItem={this.deleteItem}
+          actvtab={this.props.actvtab} />
+
         <h4 className="ui horizontal divider header">
           Todo
         </h4>
 
         <ItemList
-          undones={this.state.undone}
+          undones={this.state.undone.filter((v) => !hasdue(v))}
           checkDone={this.checkDone}
           updateItem={this.updateItem}
           deleteItem={this.deleteItem}
@@ -705,6 +744,22 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
         <ActivityList activities={this.state.activities} />
       </div>
     );
+  }
+}
+
+class Notes extends React.Component<{}, {}> {
+  render() {
+    return (
+      <div class="ui form">
+        <div class="field">
+          <label>Notes</label>
+
+          <select multiple="">
+            
+          </select>
+        </div>
+      </div>
+    )
   }
 }
 
