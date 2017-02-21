@@ -1,13 +1,13 @@
 name:                doto
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
-homepage:            https://github.com/githubuser/doto#readme
-license:             BSD3
+homepage:            https://github.com/myuon/DOTO#doto
+license:             MIT
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2016 Author name here
+author:              myuon
+maintainer:          ioi.joi.koi.loi@gmail.com
+copyright:           2016 myuon
 category:            Web
 build-type:          Simple
 -- extra-source-files:
@@ -41,4 +41,4 @@ test-suite doto-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/doto
+  location: https://github.com/myuon/DOTO
