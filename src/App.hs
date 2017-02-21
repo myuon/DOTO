@@ -1,10 +1,9 @@
-{-# LANGUAGE DataKinds, TypeOperators, DeriveGeneric #-}
+{-# LANGUAGE DataKinds, TypeOperators, TypeApplications #-}
 import Control.Monad
 import Control.Monad.Except
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Aeson.Encode
-import Data.Aeson.Encode.Pretty (encodePrettyToTextBuilder', Config(..))
+import Data.Aeson.Encode.Pretty (encodePrettyToTextBuilder', defConfig)
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Internal.Builder as T
@@ -24,10 +23,7 @@ type API =
   :<|> "todo" :> Capture "todo_id" String :> Capture "filename" String :> Get '[JSON] Value
 
 app :: Application
-app = serve api server
-
-api :: Proxy API
-api = Proxy
+app = serve @API Proxy server
 
 server :: Server API
 server =
@@ -40,7 +36,7 @@ server =
     save tid fn json = do
       liftIO
         $ writeFile ("todo/" ++ tid ++ "/" ++ fn) $ T.unpack $ T.toLazyText
-        $ encodePrettyToTextBuilder' (Config 2 mempty) $ toJSON json
+        $ encodePrettyToTextBuilder' defConfig $ toJSON json
 
     todo tid fn = do
       Just j <- decode <$> liftIO (BS.readFile $ "todo/" ++ tid ++ "/" ++ fn)
@@ -48,7 +44,7 @@ server =
 
 startApp :: IO ()
 startApp = do
-  loadTemplates api "static/templates"
+  loadTemplates @API Proxy [] "static/templates"
   let port = 8080
   putStrLn $ "http://localhost:" ++ show port ++ "/"
   run port app
