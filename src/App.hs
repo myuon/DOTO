@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds, TypeOperators, TypeApplications #-}
 import Control.Monad
 import Control.Monad.Except
+import Control.Monad.Logger
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Aeson.Encode.Pretty (encodePrettyToTextBuilder', defConfig)
@@ -12,15 +13,21 @@ import GHC.Generics
 import Network.Wai
 import Network.Wai.Handler.Warp
 import System.IO
+import System.Environment (getArgs)
 import Servant
 import Servant.EDE
 import Servant.Docs (markdown, docs, ToSample(..), singleSample)
+
+import Api.TodoItem
+import Models (doMigration)
+import Config (connInfo)
 
 type API =
   "static" :> Raw
   :<|> Get '[HTML "index.html"] Object
   :<|> "save" :> Capture "todo_id" String :> Capture "filename" String :> ReqBody '[JSON] Value :> Post '[JSON] ()
   :<|> "todo" :> Capture "todo_id" String :> Capture "filename" String :> Get '[JSON] Value
+  :<|> TodoItemAPI
 
 app :: Application
 app = serve @API Proxy server
@@ -31,6 +38,7 @@ server =
   :<|> return mempty
   :<|> save
   :<|> todo
+  :<|> serverTodoItemAPI
 
   where
     save tid fn json = do
@@ -50,4 +58,8 @@ startApp = do
   run port app
 
 main :: IO ()
-main = startApp
+main = do
+  args <- getArgs
+  case args of
+    ("migrate" : _) -> doMigration connInfo
+    _ -> startApp
