@@ -18,7 +18,9 @@ import Servant
 import Servant.EDE
 import Servant.Docs (markdown, docs, ToSample(..), singleSample)
 
-import Api.TodoItem
+import Api.TodoItem (TodoItemAPI, serverTodoItemAPI)
+import Api.TodoList (TodoListAPI, serverTodoListAPI)
+import Api.ActivityList (ActivityListAPI, serverActivityListAPI)
 import Models (doMigration)
 import Config (connInfo)
 
@@ -28,6 +30,8 @@ type API =
   :<|> "save" :> Capture "todo_id" String :> Capture "filename" String :> ReqBody '[JSON] Value :> Post '[JSON] ()
   :<|> "todo" :> Capture "todo_id" String :> Capture "filename" String :> Get '[JSON] Value
   :<|> TodoItemAPI
+  :<|> TodoListAPI
+  :<|> ActivityListAPI
 
 app :: Application
 app = serve @API Proxy server
@@ -39,6 +43,8 @@ server =
   :<|> save
   :<|> todo
   :<|> serverTodoItemAPI
+  :<|> serverTodoListAPI
+  :<|> serverActivityListAPI
 
   where
     save tid fn json = do
