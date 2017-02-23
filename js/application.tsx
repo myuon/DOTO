@@ -1,12 +1,11 @@
-/// <reference path="./typings/index.d.ts" />
 'use strict';
 
 import * as minimist from "minimist";
 import * as moment from "moment";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import Router = require('react-router');
-import * as __ from "lodash";
+import * as _ from "lodash";
+import * as $ from "jquery";
 
 function extend<T extends U, U>(itrf: T, part: U): T {
   return $.extend(itrf, part);
@@ -99,12 +98,12 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
           promise_save('activity.json', activity)
             .then(() => {
               promise_save('items.json', {items: items.values})
-              .then((_) => resolve())
-              .catch((_) => reject());
+              .then((x) => resolve())
+              .catch((x) => reject());
             })
-            .catch((_) => reject());
+            .catch((x) => reject());
         })
-        .catch((_) => reject());
+        .catch((x) => reject());
     });
   }
 
@@ -168,13 +167,13 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
     }
   }
 
-  onKeyUp = (event: React.KeyboardEvent) => {
+  onKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key == 'Enter') {
       const text: string = (event.target as HTMLInputElement).value;
       const mobj = this.terminalParser(text);
       if (text != "") {
-        this.setState((state, _) => extend(state, {
-          history: __.concat([text], state.history)
+        this.setState((state, s) => extend(state, {
+          history: _.concat([text], state.history)
         }));
       }
 
@@ -236,13 +235,14 @@ class Item extends React.Component<ItemProps, {}> {
   datetime: any
 
   componentDidMount() {
-    ($(this.accordion) as any).accordion();
-    ($(this.dropdown_icon) as any).dropdown('set selected', this.props.item.icon);
-    ($(this.dropdown_color) as any).dropdown('set selected', this.props.item.color);
-    ($(this.datetime) as any).datetimepicker({
-      format: 'Y-m-d H:i:s',
-      step: 30
-    });
+    // 一旦
+//    ($('.ui.accordion') as any).accordion();
+//    ($(this.dropdown_icon) as any).dropdown('set selected', this.props.item.icon);
+//    ($(this.dropdown_color) as any).dropdown('set selected', this.props.item.color);
+//    ($(this.datetime) as any).datetimepicker({
+//      format: 'Y-m-d H:i:s',
+//      step: 30
+//    });
   }
 
   _checkDone = () => {
@@ -519,10 +519,10 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 
   checkDone = (itemID: string) => {
-    this.setState((state, _) => {
+    this.setState((state, s) => {
       return extend(state, {
-        undone: __.pull(state.undone, itemID),
-        done: __.concat([itemID], state.done)
+        undone: _.pull(state.undone, itemID),
+        done: _.concat([itemID], state.done)
       });
     });
     $("#modified").show();
@@ -534,10 +534,10 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 
   deleteItem = (itemID: string) => {
-    this.setState((state, _) => {
+    this.setState((state, s) => {
       return extend(state, {
-        undone: __.pull(state.undone, itemID),
-        deleted: __.concat([itemID], state.deleted)
+        undone: _.pull(state.undone, itemID),
+        deleted: _.concat([itemID], state.deleted)
       });
     });
     $("#modified").show();
@@ -551,10 +551,6 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
         deleted: j.deleted
       });
     });
-  }
-
-  static contextTypes = {
-    router: React.PropTypes.func.isRequired
   }
 
   render() {
@@ -716,8 +712,8 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
       entity: itemIDs
     };
 
-    this.setState((state, _) => extend(state, {
-      activities: __.concat([item], state.activities)
+    this.setState((state, s) => extend(state, {
+      activities: _.concat([item], state.activities)
     }));
   }
 
@@ -741,24 +737,6 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
     );
   }
 }
-
-/*
-class Notes extends React.Component<{}, {}> {
-  render() {
-    return (
-      <div class="ui form">
-        <div class="field">
-          <label>Notes</label>
-
-          <select multiple="">
-
-          </select>
-        </div>
-      </div>
-    )
-  }
-}
-*/
 
 (function() {
   const tid: string = "20160628192500";
