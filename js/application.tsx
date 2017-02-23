@@ -1,23 +1,18 @@
 /// <reference path="./typings/index.d.ts" />
-/// <reference path="./node_modules/immutable/dist/immutable.d.ts"/>
 'use strict';
 
 import * as minimist from "minimist";
 import * as moment from "moment";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import Immutable = require('immutable');
 import Router = require('react-router');
+import * as __ from "lodash";
 
 function extend<T extends U, U>(itrf: T, part: U): T {
   return $.extend(itrf, part);
 }
 
-interface KeyId<a> {
-  [id: string]: a;
-};
-
-var items: KeyId<TodoItem> = {};
+var items: Map<String, TodoItem> = new Map();
 
 interface TodoItem {
   name: string,
@@ -97,14 +92,13 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
 
     let todolist: HomeTabState = this.props.hometab.state;
     let activity: ActivityTabState = this.props.actvtab.state;
-    let itemmp: Immutable.Map<string, TodoItem> = Immutable.Map(items);
 
     return new Promise((resolve, reject) => {
       promise_save('todolist.json', todolist)
         .then(() => {
           promise_save('activity.json', activity)
             .then(() => {
-              promise_save('items.json', {items: itemmp.toArray()})
+              promise_save('items.json', {items: items.values})
               .then((_) => resolve())
               .catch((_) => reject());
             })
@@ -180,7 +174,7 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
       const mobj = this.terminalParser(text);
       if (text != "") {
         this.setState((state, _) => extend(state, {
-          history: Immutable.List(state.history).unshift(text).toArray()
+          history: __.concat([text], state.history)
         }));
       }
 
@@ -501,32 +495,34 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   }
 
   addTodo = (itemID: string) => {
-    this.setState((state, _) => extend(state, {
-      undone: Immutable.List(state.undone).unshift(itemID).toArray()
-    }));
+    this.setState((state, _) => {
+      state.undone.unshift(itemID);
+      return state
+      });
     $("#modified").show();
   }
 
   sortBy = (sf: (string) => any) => {
-    this.setState((state, _) => extend(state, {
-      undone: Immutable.List(state.undone).sortBy(sf).toArray()
-    }));
+    this.setState((state, _) => {
+      state.undone.sort(sf);
+      return state;
+    });
     $("#modified").show();
   }
 
   reverse = () => {
-    this.setState((state, _) => extend(state, {
-      undone: Immutable.List(state.undone).reverse().toArray()
-    }));
+    this.setState((state, _) => {
+      state.undone.reverse();
+      return state;
+    });
     $("#modified").show();
   }
 
   checkDone = (itemID: string) => {
     this.setState((state, _) => {
-      const n = Immutable.List(state.undone).keyOf(itemID);
       return extend(state, {
-        undone: Immutable.List(state.undone).delete(n).toArray(),
-        done: Immutable.List(state.done).unshift(itemID).toArray()
+        undone: __.pull(state.undone, itemID),
+        done: __.concat([itemID], state.done)
       });
     });
     $("#modified").show();
@@ -539,10 +535,9 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
 
   deleteItem = (itemID: string) => {
     this.setState((state, _) => {
-      const n = Immutable.List(state.undone).keyOf(itemID);
       return extend(state, {
-        undone: Immutable.List(state.undone).delete(n).toArray(),
-        deleted: Immutable.List(state.deleted).unshift(itemID).toArray()
+        undone: __.pull(state.undone, itemID),
+        deleted: __.concat([itemID], state.deleted)
       });
     });
     $("#modified").show();
@@ -722,7 +717,7 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
     };
 
     this.setState((state, _) => extend(state, {
-      activities: Immutable.List(state.activities).unshift(item).toArray()
+      activities: __.concat([item], state.activities)
     }));
   }
 
@@ -747,6 +742,7 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
   }
 }
 
+/*
 class Notes extends React.Component<{}, {}> {
   render() {
     return (
@@ -755,13 +751,14 @@ class Notes extends React.Component<{}, {}> {
           <label>Notes</label>
 
           <select multiple="">
-            
+
           </select>
         </div>
       </div>
     )
   }
 }
+*/
 
 (function() {
   const tid: string = "20160628192500";
