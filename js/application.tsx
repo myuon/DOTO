@@ -235,8 +235,8 @@ class Item extends React.Component<ItemProps, {}> {
   datetime: any
 
   componentDidMount() {
-    // 一旦
-//    ($('.ui.accordion') as any).accordion();
+//    ($(this.accordion) as any).accordion();
+
 //    ($(this.dropdown_icon) as any).dropdown('set selected', this.props.item.icon);
 //    ($(this.dropdown_color) as any).dropdown('set selected', this.props.item.color);
 //    ($(this.datetime) as any).datetimepicker({
