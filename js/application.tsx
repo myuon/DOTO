@@ -6,6 +6,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as _ from "lodash";
 import * as $ from "jquery";
+import * as api from "./api";
 
 function extend<T extends U, U>(itrf: T, part: U): T {
   return $.extend(itrf, part);
@@ -21,7 +22,8 @@ interface TodoItem {
   tags: string[],
   color: string,
   icon: string,
-  id: string
+  id: string,
+  listid: number
 };
 
 function strtime(dtime) {
@@ -34,8 +36,7 @@ function strtime(dtime) {
 
 interface TerminalProps {
   hometab: HomeTab,
-  actvtab: ActivityTab,
-  url: string
+  actvtab: ActivityTab
 };
 
 interface TerminalState {
@@ -52,6 +53,7 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
   }
 
   componentDidMount() {
+/*
     let saving_start = () => {
       if ($("#modified").is(":visible") == true) {
         $("#saving-state-ing").show();
@@ -72,8 +74,10 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
 
     setInterval(saving_start, 1000*3.5);
     $(this.ref).focus();
+*/
   }
 
+/*
   save = () => {
     let promise_save = (file: string, data: any) => {
       return new Promise((resolve, reject) => {
@@ -106,7 +110,7 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
         .catch((x) => reject());
     });
   }
-
+*/
   terminalParser = (str: string) => {
     const args = _.compact(_.split(str, ' '));
     return minimist(args, {
@@ -132,6 +136,7 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
     if (mobj._.length >= 2 && mobj._[0] == "add") {
       let tags: string[] = _.split(mobj["tags"], ',');
       let now = _.now();
+
       let item: TodoItem = {
         name: mobj._[1],
         icon: mobj["icon"],
@@ -139,16 +144,22 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
         tags: tags,
         due: mobj["due"],
         message: mobj["message"],
-        id: now.toString(),
-        created_time: strtime(now)
+        id: "",
+        created_time: strtime(now),
+        listid: 1
       };
-      items[item.id] = item;
-      this.props.hometab.addTodo(item.id);
-      this.props.actvtab.newActivity("add", [item.id]);
+
+      api.postItemNew(item, (key) => {
+        item.id = key;
+        items[item.id] = item;
+        this.props.hometab.addTodo(item.id);
+        this.props.actvtab.newActivity("add", [item.id]);
+      }, {});
+
       $(this.ref).val("");
       $("#modified").show();
     } else if (mobj._.length >= 1 && mobj._[0] == "save") {
-      this.save();
+//      this.save();
       $(this.ref).val("");
     } else if (mobj._.length >= 1 && mobj._[0] == "list") {
       if (mobj._[1] == "bytag") {
@@ -474,7 +485,6 @@ class ItemList extends React.Component<ItemListProps, {}> {
 }
 
 interface HomeTabProps {
-  url: string;
   actvtab: ActivityTab;
 };
 
@@ -497,8 +507,10 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
   addTodo = (itemID: string) => {
     this.setState((state, _) => {
       state.undone.unshift(itemID);
-      return state
+      return state;
       });
+
+    api.postListUndoneAddByList_idByItem_id(1, itemID, {}, {});
     $("#modified").show();
   }
 
@@ -525,11 +537,15 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
         done: _.concat([itemID], state.done)
       });
     });
+
+    api.getListCheckDoneByList_idByItem_id(1, itemID, {}, {});
     $("#modified").show();
   }
 
   updateItem = (item: TodoItem) => {
     items[item.id] = item;
+
+    api.postItemUpdateByItem_id(item.id, item, {}, {});
     $("#modified").show();
   }
 
@@ -540,17 +556,20 @@ class HomeTab extends React.Component<HomeTabProps, HomeTabState> {
         deleted: _.concat([itemID], state.deleted)
       });
     });
+
+    api.postListCheckDeleteByList_idByItem_id(1, itemID, {}, {});
     $("#modified").show();
   }
 
   componentDidMount() {
-    $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
+    // timestampいるかも
+    api.getListByList_id(1, (j) => {
       this.setState({
         done: j.done,
         undone: j.undone,
         deleted: j.deleted
       });
-    });
+    }, {});
   }
 
   render() {
@@ -614,7 +633,8 @@ type Action = "add" | "edit" | "done"
 interface ActivityItem {
   action_time: string,
   action: Action,
-  entity: string[]
+  entity: string[],
+  listid: number
 };
 
 interface MessageProps {
@@ -689,15 +709,11 @@ class ActivityList extends React.Component<ActivityListProps, {}> {
   }
 }
 
-interface ActivityTabProps {
-  url: string;
-};
-
 interface ActivityTabState {
   activities: ActivityItem[];
 };
 
-class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
+class ActivityTab extends React.Component<{}, ActivityTabState> {
   constructor() {
     super();
     this.state = {
@@ -709,20 +725,27 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
     let item: ActivityItem = {
       action: act,
       action_time: strtime(_.now()),
-      entity: itemIDs
+      entity: itemIDs,
+      listid: 1
     };
 
     this.setState((state, s) => extend(state, {
       activities: _.concat([item], state.activities)
     }));
+
+    api.postActivityNew(item, {}, {});
   }
 
   componentDidMount() {
-    $.getJSON(this.props.url + '?timestamp=' + _.now(), (j) => {
-      this.setState({
-        activities: j.activities
+    api.getUser(USER_NAME, (user) => {
+      _.forEach(user.activities, (aid) => {
+        api.getActivityByActivity_id(aid, (activity: ActivityItem) => {
+          this.setState((state, state_) => extend(state, {
+            activities: _.concat([activity], state.activities)
+          }));
+        }, {});
       });
-    });
+    }, {});
   }
 
   render() {
@@ -738,27 +761,36 @@ class ActivityTab extends React.Component<ActivityTabProps, ActivityTabState> {
   }
 }
 
-(function() {
-  const tid: string = "20160628192500";
-  $.getJSON('todo/' + tid + '/items.json', (j) => {
-    _.forEach(j.items, (x: TodoItem) => {
-      items[x["id"]] = x;
-    });
-  })
-  .done(() => {
-    let actvtab: any = ReactDOM.render(
-      <ActivityTab url={'todo/' + tid + '/activity.json'} />,
-      document.getElementById('activity-items')
-    );
+const USER_NAME = "example";
 
-    let hometab: any = ReactDOM.render(
-      <HomeTab url={'todo/' + tid + '/todolist.json'} actvtab={actvtab} />,
-      document.getElementById('todo-items')
-    );
+(async function() {
+  // initialize
+  await api.getUser(USER_NAME, (user) => {
+    if (user == null) {
+      let item = {
+        "name": USER_NAME,
+        "email": "example@example.jp"
+      }
+      api.postUserNew(item, {}, {});
+    }
+  }, {});
 
-    let terminal: any = ReactDOM.render(
-      <Terminal url={tid} hometab={hometab} actvtab={actvtab}/>,
-      document.getElementById('terminal')
-    );
-  });
+  await api.getItems((item: TodoItem) => {
+    items[item.id] = item;
+  }, {});
+
+  let actvtab: any = ReactDOM.render(
+    <ActivityTab />,
+    document.getElementById('activity-items')
+  );
+
+  let hometab: any = ReactDOM.render(
+    <HomeTab actvtab={actvtab} />,
+    document.getElementById('todo-items')
+  );
+
+  let terminal: any = ReactDOM.render(
+    <Terminal hometab={hometab} actvtab={actvtab}/>,
+    document.getElementById('terminal')
+  );
 })();

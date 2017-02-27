@@ -18,24 +18,28 @@ type ActivityListAPI =
 
 selectActivityLists :: IO [ActivityList]
 selectActivityLists = do
-  lists <- runDB connInfo $ selectList [] []
+  lists <- runDB $ selectList [] []
   return $ (\(Entity _ u) -> u) <$> lists
 
 insertActivityList :: ActivityList -> IO ()
-insertActivityList = runDB connInfo . insert_
+insertActivityList = runDB . insert_
 
-newtype ActivityListDTO = ActivityListDTO (Action, [TodoItemId])
+newtype ActivityListDTO = ActivityListDTO (Action, [TodoItemId], UserId)
 
 instance FromJSON ActivityListDTO where
-  parseJSON (Object v) = ActivityListDTO <$> ((,) <$> (read @Action <$> (v .: "action")) <*> v .: "entity")
+  parseJSON (Object v) =
+    ActivityListDTO <$> ((,,)
+      <$> (read @Action <$> (v .: "action"))
+      <*> v .: "entity"
+      <*> v .: "userid")
   parseJSON _ = mempty
 
 serverActivityListAPI :: Server ActivityListAPI
 serverActivityListAPI = getAll :<|> getById :<|> postNew where
   getAll = lift selectActivityLists
-  getById tid = lift $ runDB connInfo $ selectFirst [ActivityListId ==. tid] []
+  getById tid = lift $ runDB $ selectFirst [ActivityListId ==. tid] []
   postNew json = case fromJSON @ActivityListDTO json of
     Error err -> lift $ print err
-    Success (ActivityListDTO (action, items)) -> do
+    Success (ActivityListDTO (action, items, userid)) -> do
       time <- lift getCurrentTime
-      lift $ insertActivityList (ActivityList (T.pack $ show action) time items)
+      lift $ insertActivityList (ActivityList (T.pack $ show action) time items userid)
