@@ -20,25 +20,48 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 TodoItem json
   name T.Text
   createdTime UTCTime
+  due UTCTime Maybe
   icon T.Text
   color T.Text
   message T.Text
   tags [T.Text]
-  deriving Show
-
-TodoList json
-  items [TodoItemId]
+  listid TodoListId
   deriving Show
 
 ActivityList json
   action T.Text
   actionTime UTCTime
   entity [TodoItemId]
+  userid UserId
+  deriving Show
+
+TodoList json
+  done [TodoItemId]
+  undone [TodoItemId]
+  deleted [TodoItemId]
+  userid UserId
+  deriving Show
+
+User json
+  name T.Text
+  email T.Text
+  list [TodoListId]
+  activities [ActivityListId]
   deriving Show
 |]
 
-runDB :: ConnectInfo -> SqlPersistT (NoLoggingT (ResourceT IO)) a -> IO a
-runDB = runSqlite
+runDB :: SqlPersistT (NoLoggingT (ResourceT IO)) a -> IO a
+runDB = runSqlite connInfo
 
-doMigration :: ConnectInfo -> IO ()
-doMigration conn = runSqlite conn $ runMigration migrateAll
+doMigration :: IO ()
+doMigration = runSqlite connInfo $ runMigration migrateAll
+
+newTodoList :: UserId -> IO TodoListId
+newTodoList uid = runDB $ insert $ TodoList [] [] [] uid
+
+newUser :: T.Text -> T.Text -> IO UserId
+newUser name email = do
+  uid <- runDB $ insert $ User name email [] []
+  tid <- newTodoList uid
+  runDB $ update uid [UserList =. [tid]]
+  return uid

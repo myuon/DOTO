@@ -16,13 +16,14 @@ cabal-version:       >=1.10
 executable doto
   hs-source-dirs:      src
   main-is:             App.hs
-  other-modules:       Models, Config, Api.TodoItem, Api.TodoList, Api.ActivityList
+  other-modules:       Models, Config, Api.TodoItem, Api.TodoList, Api.ActivityList, Api.User
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , aeson-pretty
                      , servant-server
                      , servant-ede
                      , servant-docs
+                     , servant-js
                      , wai
                      , warp
                      , mtl
