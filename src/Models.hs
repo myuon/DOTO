@@ -20,6 +20,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 TodoItem json
   name T.Text
   createdTime UTCTime
+  due UTCTime Maybe
   icon T.Text
   color T.Text
   message T.Text

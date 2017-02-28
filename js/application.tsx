@@ -12,20 +12,6 @@ function extend<T extends U, U>(itrf: T, part: U): T {
   return $.extend(itrf, part);
 }
 
-var items: Map<String, TodoItem> = new Map();
-
-interface TodoItem {
-  name: string,
-  created_time: string,
-  due: string,
-  message: string,
-  tags: string[],
-  color: string,
-  icon: string,
-  id: string,
-  listid: number
-};
-
 function strtime(dtime) {
   if (dtime == "") {
     return "";
@@ -33,6 +19,20 @@ function strtime(dtime) {
     return moment(dtime).format("YYYY-MM-DD HH:mm:ss");
   }
 }
+
+var items: Map<String, TodoItem> = new Map();
+
+interface TodoItem {
+  name: string,
+  created_time: string,
+  due?: string,
+  message: string,
+  tags: string[],
+  color: string,
+  icon: string,
+  id: string,
+  listid: number
+};
 
 interface TerminalProps {
   hometab: HomeTab,
@@ -142,12 +142,14 @@ class Terminal extends React.Component<TerminalProps, TerminalState> {
         icon: mobj["icon"],
         color: mobj["color"],
         tags: tags,
-        due: mobj["due"],
         message: mobj["message"],
         id: "",
         created_time: strtime(now),
         listid: 1
       };
+      if (mobj["due"]) {
+        item.due = mobj["due"];
+      }
 
       api.postItemNew(item, (key) => {
         item.id = key;
